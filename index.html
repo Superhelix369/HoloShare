@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>HoloShare – Pepper's Ghost</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>HoloShare – Pyramid 3D Hologram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
@@ -11,8 +11,8 @@
       padding: 0;
       background: #000;
       color: #fff;
-      font-family: -apple-system, "SF Pro Display", sans-serif;
       overflow: hidden;
+      font-family: -apple-system, "SF Pro Display", sans-serif;
       touch-action: none;
     }
 
@@ -21,41 +21,17 @@
       text-align: center;
     }
 
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #7f5cff, #4fc3ff);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
     .btn {
       display: inline-block;
-      margin: 12px 0;
       padding: 12px 20px;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      margin: 10px;
+      background: rgba(255,255,255,0.15);
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      font-size: 1rem;
+      border: 1px solid rgba(255,255,255,0.3);
       cursor: pointer;
     }
 
-    #previewArea {
-      margin-top: 10px;
-      display: none;
-    }
-
-    #previewMedia {
-      width: 90%;
-      max-height: 40vh;
-      object-fit: contain;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-
-    /* ===== ホログラム表示（全画面） ===== */
+    /* === ホログラム画面 === */
     #holoScreen {
       position: fixed;
       inset: 0;
@@ -63,140 +39,172 @@
       display: none;
       justify-content: center;
       align-items: center;
-      touch-action: none;
       z-index: 9999;
-    }
-
-    #holoMedia {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-      transform: scaleX(-1); /* 左右反転（Pepper’s Ghost 必須） */
     }
 
     #closeBtn {
       position: fixed;
-      top: env(safe-area-inset-top, 10px);
-      right: 10px;
+      top: 12px;
+      right: 12px;
       padding: 8px 14px;
-      font-size: 0.9rem;
-      border-radius: 12px;
       background: rgba(0,0,0,0.6);
       border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
+      border-radius: 10px;
       z-index: 10000;
+    }
+
+    /* ★ 4面ピラミッド用のホログラム表示 ★ */
+    #pyramidCanvas {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      transform-origin: center;
+    }
+
+    /* 4つの面（上・左・右・下） */
+    .face {
+      position: absolute;
+      width: 50vw;
+      height: 50vh;
+      object-fit: contain;
+      filter: brightness(140%) contrast(130%);
+    }
+
+    #topFace   { top:   0; left: 25vw; }
+    #leftFace  { top: 25vh; left:  0; transform: scaleX(-1); }
+    #rightFace { top: 25vh; right: 0; transform: scaleX(1); }
+    #bottomFace{ bottom: 0; left: 25vw; transform: rotate(180deg); }
+
+    /* 操作スライダー */
+    .controls {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 20000;
+    }
+
+    .slider {
+      width: 70%;
+      margin: 12px auto;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h1>HoloShare – Pepper’s Ghost</h1>
-    <p>写真・動画を読み込んで、ホログラム用にミラー反転して表示します。</p>
+    <h1>HoloShare – 3D Pyramid Hologram</h1>
+    <p>動画・写真を4方向に配置し、逆ピラミッド3Dホログラムで表示します。</p>
 
-    <button class="btn" onclick="imageInput.click()">📸 写真を選ぶ</button>
-    <button class="btn" onclick="videoInput.click()">🎥 動画を選ぶ</button>
+    <button class="btn" onclick="imageInput.click()">📸 画像を選択</button>
+    <button class="btn" onclick="videoInput.click()">🎥 動画を選択</button>
 
     <input id="imageInput" type="file" accept="image/*" style="display:none">
     <input id="videoInput" type="file" accept="video/*" style="display:none">
 
-    <div id="previewArea">
+    <div id="previewArea" style="display:none;">
       <p>プレビュー</p>
-      <img id="previewMedia" />
-      <video id="previewMedia" playsinline controls style="display:none"></video>
-      <br>
-      <button class="btn" id="startBtn">✨ ホログラム表示</button>
+      <img id="previewImg" style="width:80%; display:none;">
+      <video id="previewVid" playsinline controls style="width:80%; display:none;"></video>
+      <button class="btn" id="startBtn">✨ 3Dホログラム表示</button>
     </div>
   </div>
 
-  <!-- ホログラム本番画面 -->
+  <!-- === ホログラム本画面 === -->
   <div id="holoScreen">
     <button id="closeBtn">✕</button>
-    <video id="holoMedia" playsinline loop muted style="display:none"></video>
-    <img id="holoMedia" style="display:none">
+
+    <div id="pyramidCanvas">
+      <img id="topFace" class="face">
+      <img id="leftFace" class="face">
+      <img id="rightFace" class="face">
+      <img id="bottomFace" class="face">
+    </div>
+
+    <!-- 調整UI -->
+    <div class="controls">
+      大きさ
+      <input id="scaleSlider" type="range" min="50" max="200" value="100" class="slider">
+      明るさ
+      <input id="brightSlider" type="range" min="50" max="250" value="140" class="slider">
+      上下位置
+      <input id="ySlider" type="range" min="-50" max="50" value="0" class="slider">
+    </div>
   </div>
 
 <script>
-  const imageInput = document.getElementById("imageInput");
-  const videoInput = document.getElementById("videoInput");
+  const imgInput = document.getElementById("imageInput");
+  const vidInput = document.getElementById("videoInput");
+
   const previewArea = document.getElementById("previewArea");
-  const previewMediaImg = document.querySelector("#previewArea img");
-  const previewMediaVid = document.querySelector("#previewArea video");
-  const startBtn = document.getElementById("startBtn");
+  const previewImg = document.getElementById("previewImg");
+  const previewVid = document.getElementById("previewVid");
 
-  const holoScreen = document.getElementById("holoScreen");
-  const closeBtn = document.getElementById("closeBtn");
-  const holoMedia = document.querySelector("#holoScreen video");
-
-  let currentType = null;
   let currentSrc = null;
+  let mediaType = null;
 
-  // 画像
-  imageInput.addEventListener("change", e => {
+  imgInput.addEventListener("change", e => {
     const file = e.target.files[0];
     if (!file) return;
-
-    currentType = "image";
+    mediaType = "image";
     const reader = new FileReader();
     reader.onload = ev => {
       currentSrc = ev.target.result;
-
       previewArea.style.display = "block";
-      previewMediaVid.style.display = "none";
-      previewMediaImg.style.display = "block";
-      previewMediaImg.src = currentSrc;
+      previewVid.style.display = "none";
+      previewImg.style.display = "block";
+      previewImg.src = currentSrc;
     };
     reader.readAsDataURL(file);
   });
 
-  // 動画
-  videoInput.addEventListener("change", e => {
+  vidInput.addEventListener("change", e => {
     const file = e.target.files[0];
     if (!file) return;
-
-    currentType = "video";
-    const url = URL.createObjectURL(file);
-
-    currentSrc = url;
-
+    mediaType = "video";
+    currentSrc = URL.createObjectURL(file);
     previewArea.style.display = "block";
-    previewMediaImg.style.display = "none";
-    previewMediaVid.style.display = "block";
-    previewMediaVid.src = url;
-    previewMediaVid.play();
+    previewImg.style.display = "none";
+    previewVid.style.display = "block";
+    previewVid.src = currentSrc;
+    previewVid.play();
   });
 
-  startBtn.addEventListener("click", () => {
-    holoScreen.style.display = "flex";
+  document.getElementById("startBtn").addEventListener("click", () => {
+    document.getElementById("holoScreen").style.display = "flex";
 
-    if (currentType === "image") {
-      const img = document.createElement("img");
-      img.id = "holoImg";
-      img.src = currentSrc;
-      img.style.width = "100vw";
-      img.style.height = "100vh";
-      img.style.objectFit = "contain";
-      img.style.transform = "scaleX(-1)";
-      holoScreen.appendChild(img);
-    }
+    document.querySelectorAll(".face").forEach(face => {
+      face.src = currentSrc;
+    });
 
-    if (currentType === "video") {
-      holoMedia.src = currentSrc;
-      holoMedia.style.display = "block";
-      holoMedia.play();
-    }
-
-    // フルスクリーン試行
     try {
-      let el = holoScreen;
-      if (el.requestFullscreen) el.requestFullscreen();
-    } catch (e) {}
+      document.getElementById("holoScreen").requestFullscreen();
+    } catch(e){}
   });
 
-  closeBtn.addEventListener("click", () => {
-    holoScreen.style.display = "none";
-    holoMedia.pause();
+  document.getElementById("closeBtn").addEventListener("click", () => {
+    document.getElementById("holoScreen").style.display = "none";
   });
+
+  // ★ スライダー制御 ★
+  const canvas = document.getElementById("pyramidCanvas");
+
+  document.getElementById("scaleSlider").oninput = e => {
+    const v = e.target.value / 100;
+    canvas.style.transform = `scale(${v})`;
+  };
+
+  document.getElementById("brightSlider").oninput = e => {
+    const v = e.target.value;
+    document.querySelectorAll(".face").forEach(face => {
+      face.style.filter = `brightness(${v}%) contrast(150%)`;
+    });
+  };
+
+  document.getElementById("ySlider").oninput = e => {
+    const v = e.target.value;
+    canvas.style.marginTop = `${v}px`;
+  };
 </script>
 
 </body>
