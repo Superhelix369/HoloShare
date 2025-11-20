@@ -17,6 +17,23 @@
     -webkit-user-select: none;
   }
 
+  #appTitle {
+  width: 100%;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-family: "Segoe UI", "Hiragino Sans", "Helvetica Neue", sans-serif;
+  background: linear-gradient(90deg, #b3e5ff, #ffffff, #b3e5ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0 8px rgba(100,180,255,0.7),
+    0 0 12px rgba(150,220,255,0.5);
+}
+
+
   #controls {
     text-align: center;
     padding: 12px;
@@ -66,6 +83,8 @@
 </head>
 <body>
 
+<div id="appTitle">HoloShare</div>
+  
 <div id="controls">
   <label for="videoInput">🎬 動画ファイルを選択</label>
   <input id="videoInput" type="file" accept="video/*">
