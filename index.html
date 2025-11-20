@@ -21,19 +21,25 @@
     text-align: center;
     padding: 12px;
     background: #000;
-    position: relative;
-    z-index: 10;
-  }
-
-  #canvasWrapper {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;   /* 最前面 */
+}
+
+#canvasWrapper {
+    position: absolute;
+    top: 60px;        /* controls 分の余白 */
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: #000;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1;
-  }
+}
 
   canvas {
     display: block;
