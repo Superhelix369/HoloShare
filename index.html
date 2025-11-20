@@ -53,19 +53,26 @@
   input[type=file] { display: none; }
 
   /* ===== キャンバス表示領域 ===== */
-  #canvasWrapper {
+ #canvasWrapper {
     position: fixed;
-    inset: 0;          /* ←これで上下左右全部いっぱい */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background: #000;
-    z-index: 1;
-  }
+    overflow: hidden;
+}
 
-  canvas {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;  /* ←絶対に切れない */
+canvas {
+    width: 100vmin;   /* ← 画面の短辺に合わせる */
+    height: 100vmin;  /* ← 正方形を維持 */
+    background: #000;
     display: block;
-  }
+}
+ 
 </style>
 </head>
 
@@ -90,7 +97,7 @@
 /* ===== 設定 ===== */
 const CANVAS_SIZE = 1080;      // iPhone 14 → 本番では1000に切替
 const CROP_SCALE  = 0.80;      // 正方形の中心トリミング
-const FACE_SCALE  = 0.36;      // 1面サイズ（切れないギリギリ）
+const FACE_SCALE  = 0.35;      // 1面サイズ（切れないギリギリ）
 
 /* ================= */
 const canvas = document.getElementById("holoCanvas");
