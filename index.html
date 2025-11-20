@@ -41,15 +41,13 @@
   top: calc(env(safe-area-inset-top) + 70px);
   left: 0;
   width: 100%;
+  text-align: center;
   z-index: 1500;
 }
 
-
-  
-
 #canvasWrapper {
     position: absolute;
-    top: 100px;        /* controls 分の余白 */
+    top: 110px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -60,33 +58,33 @@
     z-index: 1;
 }
 
-  canvas {
-    display: block;
-    background: #000;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
+canvas {
+  display: block;
+  background: #000;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
-  label, button {
-    background: #222;
-    color: #fff;
-    padding: 10px 14px;
-    border: 1px solid #555;
-    border-radius: 8px;
-    margin: 5px 0;
-    font-size: 14px;
-  }
+label, button {
+  background: #222;
+  color: #fff;
+  padding: 10px 14px;
+  border: 1px solid #555;
+  border-radius: 8px;
+  margin: 5px 6px;
+  font-size: 14px;
+}
 
-  input[type=file] {
-    display: none;
-  }
+input[type=file] {
+  display: none;
+}
 </style>
 </head>
 <body>
-  
-<div id="appTitle">HoloShare</div>  
-  
+
+<div id="appTitle">HoloShare</div>
+
 <div id="controls">
   <label for="videoInput">🎬 動画ファイルを選択</label>
   <input id="videoInput" type="file" accept="video/*">
@@ -103,53 +101,49 @@
 <script>
 /* ===== 設定 ===== */
 
-// iPhone 14（開発用）
+// iPhone 14（開発）
 const CANVAS_SIZE_IPHONE14 = 1080;
-
-// iPhone X（本番用）
+// iPhone X（本番）
 const CANVAS_SIZE_IPHONEX = 1000;
 
-// ★使うキャンバスサイズ（コメント切り替え）★
+// ▼ 使用するキャンバスサイズ（切り替え）
 const CANVAS_SIZE = CANVAS_SIZE_IPHONE14;
 // const CANVAS_SIZE = CANVAS_SIZE_IPHONEX;
 
-// プラバンピラミッド（上13cm/下4cm/高さ8cm）に合わせた人物大きさ調整
-const CROP_SCALE = 0.85;    // 中央のズーム量（0.7〜0.9で微調整可）
-const FACE_SCALE = 0.38;    // 1面の大きさ（0.30〜0.45で微調整可）
+// ▼ ピラミッド 13cm 最適化
+const CROP_SCALE = 0.80; 
+const FACE_SCALE = 0.38;  // ←ここを上げると人物が大きくなる（0.38〜0.44）推奨
 
 /* =============================== */
 
 const canvas = document.getElementById("holoCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = CANVAS_SIZE;
+canvas.width  = CANVAS_SIZE;
 canvas.height = CANVAS_SIZE;
 
-const videoInput = document.getElementById("videoInput");
 const video = document.getElementById("srcVideo");
+video.loop = true;  // 🔥 無限ループ追加
+
+const videoInput = document.getElementById("videoInput");
 const playBtn = document.getElementById("playBtn");
 const fsBtn   = document.getElementById("fsBtn");
 
-const wrapper  = document.getElementById("canvasWrapper");
 const controls = document.getElementById("controls");
-const appTitle = document.getElementById("appTitle");
+const wrapper  = document.getElementById("canvasWrapper");
+const title    = document.getElementById("appTitle");
 
 let isLoaded = false;
-let animId   = null;
-let isFull   = false;
+let animId = null;
+let isFull = false;
 
-/* iPhone/iOS 対策：動画メタデータの取得 */
 function waitVideoReady() {
-  return new Promise((resolve) => {
-    if (video.readyState >= 2) {
-      resolve();
-    } else {
-      video.addEventListener("loadedmetadata", resolve, { once: true });
-    }
+  return new Promise((resolve)=>{
+    if (video.readyState >= 2) resolve();
+    else video.addEventListener("loadedmetadata", resolve, {once:true});
   });
 }
 
-/* ファイル選択 */
-videoInput.addEventListener("change", async (e) => {
+videoInput.addEventListener("change", async (e)=>{
   const file = e.target.files[0];
   if (!file) return;
 
@@ -162,44 +156,43 @@ videoInput.addEventListener("change", async (e) => {
   playBtn.disabled = false;
   fsBtn.disabled   = false;
 
-  video.play().catch(() => {});
+  video.play();
   startLoop();
 });
 
-/* 再生/停止 */
-playBtn.addEventListener("click", () => {
+playBtn.addEventListener("click", ()=>{
   if (!isLoaded) return;
 
   if (video.paused) {
     video.play();
-    startLoop();
     playBtn.textContent = "⏸一時停止";
+    startLoop();
   } else {
     video.pause();
-    stopLoop();
     playBtn.textContent = "▶再生";
+    stopLoop();
   }
 });
 
-/* 「全画面」ボタン：ブラウザのフルスクリーンは使わず、UIを隠してキャンバスを全面表示する */
-fsBtn.addEventListener("click", () => {
+/* 全画面（UI非表示） */
+fsBtn.addEventListener("click", ()=>{
   if (!isFull) {
-    if (controls) controls.style.display = "none";
-    if (appTitle) appTitle.style.display = "none";
-    if (wrapper)  wrapper.style.top = "0";
+    controls.style.display = "none";
+    title.style.display    = "none";
+    wrapper.style.top      = "0";
     isFull = true;
   } else {
-    if (controls) controls.style.display = "";
-    if (appTitle) appTitle.style.display = "";
-    if (wrapper)  wrapper.style.top = "";  // CSS の値に戻す
+    controls.style.display = "";
+    title.style.display    = "";
+    wrapper.style.top      = "110px";
     isFull = false;
   }
 });
 
-/* ループ描画 */
+/* ==== アニメーションループ ==== */
 function startLoop() {
   if (animId != null) return;
-  const loop = () => {
+  const loop = ()=>{
     drawHologram();
     animId = requestAnimationFrame(loop);
   };
@@ -207,13 +200,11 @@ function startLoop() {
 }
 
 function stopLoop() {
-  if (animId != null) {
-    cancelAnimationFrame(animId);
-    animId = null;
-  }
+  cancelAnimationFrame(animId);
+  animId = null;
 }
 
-/* ===== 4面ホログラム描画 ===== */
+/* ==== 4面ホログラム描画 ==== */
 function drawHologram() {
   if (!isLoaded) return;
 
@@ -221,51 +212,34 @@ function drawHologram() {
   const vh = video.videoHeight;
   if (!vw || !vh) return;
 
-  // 縦動画でも横動画でも、中央の正方形を切り出す
   const shortSide = Math.min(vw, vh);
-  const cropSize  = shortSide * CROP_SCALE;
-  const sx = (vw - cropSize) / 2;
-  const sy = (vh - cropSize) / 2;
+  const crop = shortSide * CROP_SCALE;
+  const sx = (vw - crop) / 2;
+  const sy = (vh - crop) / 2;
 
   const S = CANVAS_SIZE;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,S,S);
 
-  // 変換をリセットして、毎フレームまっさらな状態から描画
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, S, S);
+  const face = S * FACE_SCALE;
+  const cx = S/2;
+  const cy = S/2;
 
-  const face = S * FACE_SCALE; // 1面の一辺の長さ（正方形）
-  const cx = S / 2;
-  const cy = S / 2;
-
-  // 1面描画用の小さなヘルパー
-  function drawFace(angleRad, tx, ty) {
+  function drawFace(rot, tx, ty) {
     ctx.save();
-    ctx.translate(tx, ty);       // この座標を中心として
-    ctx.rotate(angleRad);        // 回転
-    ctx.drawImage(
-      video,
-      sx, sy, cropSize, cropSize,   // 元動画（中央の正方形）
-      -face / 2, -face / 2,         // 描画先の左上（中心から半分ずらす）
-      face, face                    // 描画先サイズ（正方形）
-    );
+    ctx.translate(tx, ty);
+    ctx.rotate(rot);
+    ctx.drawImage(video, sx, sy, crop, crop, -face/2, -face/2, face, face);
     ctx.restore();
   }
 
-  // 下（観客側）: 回転なし
-  drawFace(0,            cx,             cy + face / 2);
-
-  // 上 : 180度回転
-  drawFace(Math.PI,      cx,             cy - face / 2);
-
-  // 左 : -90度回転
-  drawFace(-Math.PI/2,   cx - face / 2,  cy);
-
-  // 右 : +90度回転
-  drawFace(Math.PI/2,    cx + face / 2,  cy);
+  drawFace(0,          cx,           cy + face/2);
+  drawFace(Math.PI,    cx,           cy - face/2);
+  drawFace(-Math.PI/2, cx - face/2,  cy);
+  drawFace(Math.PI/2,  cx + face/2,  cy);
 }
 </script>
-
-
 </body>
 </html>
+
