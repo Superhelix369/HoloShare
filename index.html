@@ -95,17 +95,16 @@ canvas {
 
 <script>
 /* ===== 設定 ===== */
-//const CANVAS_SIZE = 1080;      // iPhone 14 → 本番では1000に切替
-const CROP_SCALE  = 0.80;      // 正方形の中心トリミング
-const FACE_SCALE  = 0.35;      // 1面サイズ（切れないギリギリ）
+const CROP_SCALE  = 1.0;      // ← これ以上ズームしない（横幅フル）
+const FACE_SCALE  = 0.33;     // ← 4面がキャンバスから切れない安全サイズ
 
 /* ================= */
 const canvas = document.getElementById("holoCanvas");
 // スマホの短辺サイズに正方形を合わせる
 const canvasSize = Math.min(window.innerWidth, window.innerHeight);
-canvas.width = canvasSize;
+canvas.width  = canvasSize;
 canvas.height = canvasSize;
-  
+
 // 2D 描画コンテキストを取得（必須）
 const ctx = canvas.getContext("2d");
 
@@ -140,7 +139,7 @@ videoInput.addEventListener("change", async(e)=>{
   await waitVideoReady();
   isLoaded = true;
 
-  video.loop = true;  // ←←★ 自動ループ再生！
+  video.loop = true;  // ← 自動ループ再生
   video.play();
 
   playBtn.disabled = false;
@@ -192,12 +191,12 @@ function drawHologram(){
   if(!vw || !vh) return;
 
   const shortSide = Math.min(vw,vh);
-  const cropSize  = shortSide*CROP_SCALE;
+  const cropSize  = shortSide * CROP_SCALE;
   const sx=(vw-cropSize)/2;
   const sy=(vh-cropSize)/2;
 
   const S = canvas.width;
-  const face = S*FACE_SCALE;
+  const face = S * FACE_SCALE;
   const cx=S/2, cy=S/2;
 
   ctx.setTransform(1,0,0,1,0,0);
@@ -212,12 +211,13 @@ function drawHologram(){
     ctx.restore();
   }
 
-  f(0,          cx, cy+face/2);
-  f(Math.PI,    cx, cy-face/2);
-  f(-Math.PI/2, cx-face/2, cy);
-  f(Math.PI/2,  cx+face/2, cy);
+  f(0,          cx, cy+face/2);   // 下
+  f(Math.PI,    cx, cy-face/2);   // 上
+  f(-Math.PI/2, cx-face/2, cy);   // 左
+  f(Math.PI/2,  cx+face/2, cy);   // 右
 }
 </script>
+
 
 </body>
 </html>
