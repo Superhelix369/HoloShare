@@ -17,13 +17,14 @@
     -webkit-user-select: none;
   }
 
-  #appTitle {
+ #appTitle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 0;
   width: 100%;
   text-align: center;
   font-size: 34px;
   font-weight: 600;
-  margin-top: 10px;
-  margin-bottom: 5px;
   font-family: "Segoe UI", "Hiragino Sans", "Helvetica Neue", sans-serif;
   background: linear-gradient(90deg, #b3e5ff, #ffffff, #b3e5ff);
   -webkit-background-clip: text;
@@ -31,19 +32,20 @@
   text-shadow:
     0 0 8px rgba(100,180,255,0.7),
     0 0 12px rgba(150,220,255,0.5);
+  z-index: 2000;
+  pointer-events: none;
+}
+
+#controls {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 70px);
+  left: 0;
+  width: 100%;
+  z-index: 1500;
 }
 
 
-  #controls {
-    text-align: center;
-    padding: 12px;
-    background: #000;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1000;   /* 最前面 */
-}
+  
 
 #canvasWrapper {
     position: absolute;
