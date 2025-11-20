@@ -2,210 +2,275 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>HoloShare – Pyramid 3D Hologram</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoloShare<p>
+    ホログラム用4面動画プレーヤー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
   <style>
     body {
       margin: 0;
-      padding: 0;
       background: #000;
       color: #fff;
-      overflow: hidden;
-      font-family: -apple-system, "SF Pro Display", sans-serif;
-      touch-action: none;
-    }
-
-    .container {
-      padding: 20px;
-      text-align: center;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 12px 20px;
-      margin: 10px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.3);
-      cursor: pointer;
-    }
-
-    /* === ホログラム画面 === */
-    #holoScreen {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: none;
-      justify-content: center;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      z-index: 9999;
+      justify-content: flex-start;
+      min-height: 100vh;
     }
 
-    #closeBtn {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      padding: 8px 14px;
-      background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 10px;
-      z-index: 10000;
-    }
-
-    /* ★ 4面ピラミッド用のホログラム表示 ★ */
-    #pyramidCanvas {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      transform-origin: center;
-    }
-
-    /* 4つの面（上・左・右・下） */
-    .face {
-      position: absolute;
-      width: 50vw;
-      height: 50vh;
-      object-fit: contain;
-      filter: brightness(140%) contrast(130%);
-    }
-
-    #topFace   { top:   0; left: 25vw; }
-    #leftFace  { top: 25vh; left:  0; transform: scaleX(-1); }
-    #rightFace { top: 25vh; right: 0; transform: scaleX(1); }
-    #bottomFace{ bottom: 0; left: 25vw; transform: rotate(180deg); }
-
-    /* 操作スライダー */
-    .controls {
-      position: fixed;
-      bottom: 10px;
-      width: 100%;
+    header {
+      padding: 10px 12px;
       text-align: center;
-      z-index: 20000;
+      font-size: 14px;
+      opacity: 0.85;
     }
 
-    .slider {
-      width: 70%;
-      margin: 12px auto;
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 0 12px 10px;
+      width: 100%;
+      max-width: 500px;
+      box-sizing: border-box;
+    }
+
+    button, label {
+      background: #222;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    button:active {
+      background: #444;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    #canvasWrapper {
+      width: 100vw;
+      max-width: 100vh; /* 画面よりはみ出さないように */
+      aspect-ratio: 1 / 1; /* 正方形を維持 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: block;
+    }
+
+    small {
+      font-size: 11px;
+      opacity: 0.7;
     }
   </style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>HoloShare – 3D Pyramid Hologram</h1>
-    <p>動画・写真を4方向に配置し、逆ピラミッド3Dホログラムで表示します。</p>
+  <header>
+    <div>スマホ用ホログラム4面プレーヤー</div>
+    <small>動画を選んで「再生 → 全画面」にしてから装置にセット</small>
+  </header>
 
-    <button class="btn" onclick="imageInput.click()">📸 画像を選択</button>
-    <button class="btn" onclick="videoInput.click()">🎥 動画を選択</button>
+  <section id="controls">
+    <label for="videoInput">🎬 動画ファイルを選択（mp4 など）</label>
+    <input type="file" id="videoInput" accept="video/*">
 
-    <input id="imageInput" type="file" accept="image/*" style="display:none">
-    <input id="videoInput" type="file" accept="video/*" style="display:none">
+    <button id="playBtn" disabled>▶ 再生 / 一時停止</button>
+    <button id="fsBtn" disabled>⛶ 全画面表示</button>
 
-    <div id="previewArea" style="display:none;">
-      <p>プレビュー</p>
-      <img id="previewImg" style="width:80%; display:none;">
-      <video id="previewVid" playsinline controls style="width:80%; display:none;"></video>
-      <button class="btn" id="startBtn">✨ 3Dホログラム表示</button>
-    </div>
+    <small>
+      ※iPhone 14 と iPhone X のキャンバス解像度は、<br>
+      下のコード内の <code>CANVAS_SIZE</code> をコメント切り替えしてください。
+    </small>
+  </section>
+
+  <div id="canvasWrapper">
+    <canvas id="holoCanvas"></canvas>
   </div>
 
-  <!-- === ホログラム本画面 === -->
-  <div id="holoScreen">
-    <button id="closeBtn">✕</button>
+  <!-- 非表示のvideo（ソースとしてだけ使う） -->
+  <video id="srcVideo" playsinline webkit-playsinline style="display:none;"></video>
 
-    <div id="pyramidCanvas">
-      <img id="topFace" class="face">
-      <img id="leftFace" class="face">
-      <img id="rightFace" class="face">
-      <img id="bottomFace" class="face">
-    </div>
+  <script>
+    // ====== 設定 ======
+    // ★ iPhone 14 用 推奨設定（開発・テスト用）
+    const CANVAS_SIZE_IPHONE_14 = 1080;
 
-    <!-- 調整UI -->
-    <div class="controls">
-      大きさ
-      <input id="scaleSlider" type="range" min="50" max="200" value="100" class="slider">
-      明るさ
-      <input id="brightSlider" type="range" min="50" max="250" value="140" class="slider">
-      上下位置
-      <input id="ySlider" type="range" min="-50" max="50" value="0" class="slider">
-    </div>
-  </div>
+    // ★ iPhone X 用 推奨設定（本番用）
+    const CANVAS_SIZE_IPHONE_X = 1000;
 
-<script>
-  const imgInput = document.getElementById("imageInput");
-  const vidInput = document.getElementById("videoInput");
+    // ↓ 実際に使うサイズをここで選択（必要に応じて切り替えてください）
+    // const CANVAS_SIZE = CANVAS_SIZE_IPHONE_14; // ← 開発中（iPhone 14 のとき）
+    const CANVAS_SIZE = CANVAS_SIZE_IPHONE_X;   // ← 本番（iPhone X のとき）
 
-  const previewArea = document.getElementById("previewArea");
-  const previewImg = document.getElementById("previewImg");
-  const previewVid = document.getElementById("previewVid");
+    // 人物の拡大率（0.0〜1.0くらいで調整）
+    // 1.0 に近いほど、大きく表示される（はみ出す場合は下げる）
+    const CROP_SCALE = 0.9;
 
-  let currentSrc = null;
-  let mediaType = null;
+    const videoInput = document.getElementById('videoInput');
+    const video = document.getElementById('srcVideo');
+    const canvas = document.getElementById('holoCanvas');
+    const ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('playBtn');
+    const fsBtn   = document.getElementById('fsBtn');
 
-  imgInput.addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    mediaType = "image";
-    const reader = new FileReader();
-    reader.onload = ev => {
-      currentSrc = ev.target.result;
-      previewArea.style.display = "block";
-      previewVid.style.display = "none";
-      previewImg.style.display = "block";
-      previewImg.src = currentSrc;
-    };
-    reader.readAsDataURL(file);
-  });
+    let animId = null;
+    let isLoaded = false;
 
-  vidInput.addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    mediaType = "video";
-    currentSrc = URL.createObjectURL(file);
-    previewArea.style.display = "block";
-    previewImg.style.display = "none";
-    previewVid.style.display = "block";
-    previewVid.src = currentSrc;
-    previewVid.play();
-  });
+    canvas.width  = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
 
-  document.getElementById("startBtn").addEventListener("click", () => {
-    document.getElementById("holoScreen").style.display = "flex";
+    // ====== ファイル選択 ======
+    videoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    document.querySelectorAll(".face").forEach(face => {
-      face.src = currentSrc;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.load();
+
+      video.addEventListener('loadedmetadata', onLoadedMeta, { once: true });
     });
 
-    try {
-      document.getElementById("holoScreen").requestFullscreen();
-    } catch(e){}
-  });
+    function onLoadedMeta() {
+      isLoaded = true;
+      playBtn.disabled = false;
+      fsBtn.disabled = false;
 
-  document.getElementById("closeBtn").addEventListener("click", () => {
-    document.getElementById("holoScreen").style.display = "none";
-  });
+      // 自動で再生開始
+      video.play().catch(() => {
+        // 自動再生がブロックされた場合は無視
+      });
 
-  // ★ スライダー制御 ★
-  const canvas = document.getElementById("pyramidCanvas");
+      startLoop();
+    }
 
-  document.getElementById("scaleSlider").oninput = e => {
-    const v = e.target.value / 100;
-    canvas.style.transform = `scale(${v})`;
-  };
+    // ====== 再生 / 一時停止 ======
+    playBtn.addEventListener('click', () => {
+      if (!isLoaded) return;
 
-  document.getElementById("brightSlider").oninput = e => {
-    const v = e.target.value;
-    document.querySelectorAll(".face").forEach(face => {
-      face.style.filter = `brightness(${v}%) contrast(150%)`;
+      if (video.paused) {
+        video.play();
+        playBtn.textContent = '⏸ 一時停止';
+        startLoop();
+      } else {
+        video.pause();
+        playBtn.textContent = '▶ 再生';
+        stopLoop();
+      }
     });
-  };
 
-  document.getElementById("ySlider").oninput = e => {
-    const v = e.target.value;
-    canvas.style.marginTop = `${v}px`;
-  };
-</script>
+    // ====== 全画面表示 ======
+    fsBtn.addEventListener('click', () => {
+      const wrapper = document.getElementById('canvasWrapper');
+      if (wrapper.requestFullscreen) {
+        wrapper.requestFullscreen();
+      } else if (wrapper.webkitRequestFullscreen) { // iOS Safari
+        wrapper.webkitRequestFullscreen();
+      }
+    });
 
+    // ====== アニメーションループ ======
+    function startLoop() {
+      if (animId != null) return;
+      const loop = () => {
+        drawHologram();
+        animId = requestAnimationFrame(loop);
+      };
+      animId = requestAnimationFrame(loop);
+    }
+
+    function stopLoop() {
+      if (animId != null) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+    }
+
+    // ====== 4面ホログラム描画 ======
+    function drawHologram() {
+      if (!isLoaded) return;
+      if (video.readyState < 2) return; // データがまだ
+
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
+      if (vw === 0 || vh === 0) return;
+
+      // まず、元動画の中央を正方形でトリミング
+      const shortSide = Math.min(vw, vh);
+      const cropSize = shortSide * CROP_SCALE; // ちょっとズームイン
+      const sx = (vw - cropSize) / 2;
+      const sy = (vh - cropSize) / 2;
+      const sw = cropSize;
+      const sh = cropSize;
+
+      const S = CANVAS_SIZE;
+      ctx.clearRect(0, 0, S, S);
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, S, S);
+
+      // 1面あたりの表示サイズ（正方形）
+      const faceSize = S * 0.45; // 0.45〜0.48くらいまで上げてもOK
+      const cx = S / 2;
+      const cy = S / 2;
+
+      // ===== 底（観客側） =====
+      ctx.save();
+      ctx.translate(cx, cy + faceSize / 2);
+      // 回転なし（上下もそのまま）
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -faceSize / 2, -faceSize, faceSize, faceSize
+      );
+      ctx.restore();
+
+      // ===== 上（ピラミッドの上側） → 180度回転 =====
+      ctx.save();
+      ctx.translate(cx, cy - faceSize / 2);
+      ctx.rotate(Math.PI); // 180度回転
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -faceSize / 2, -faceSize, faceSize, faceSize
+      );
+      ctx.restore();
+
+      // ===== 左側 → -90度回転 =====
+      ctx.save();
+      ctx.translate(cx - faceSize / 2, cy);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -faceSize / 2, -faceSize, faceSize, faceSize
+      );
+      ctx.restore();
+
+      // ===== 右側 → +90度回転 =====
+      ctx.save();
+      ctx.translate(cx + faceSize / 2, cy);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -faceSize / 2, -faceSize, faceSize, faceSize
+      );
+      ctx.restore();
+    }
+  </script>
 </body>
 </html>
