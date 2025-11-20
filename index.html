@@ -13,74 +13,62 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
   }
 
- #appTitle {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 8px);
-  left: 0;
-  width: 100%;
-  text-align: center;
-  font-size: 34px;
-  font-weight: 600;
-  font-family: "Segoe UI", "Hiragino Sans", "Helvetica Neue", sans-serif;
-  background: linear-gradient(90deg, #b3e5ff, #ffffff, #b3e5ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow:
-    0 0 8px rgba(100,180,255,0.7),
-    0 0 12px rgba(150,220,255,0.5);
-  z-index: 2000;
-  pointer-events: none;
-}
+  /* ===== タイトル ===== */
+  #appTitle {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 4px);
+    width: 100%;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #b3e5ff, #ffffff, #b3e5ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(120,200,255,0.7);
+    z-index: 2000;
+    pointer-events: none;
+  }
 
-#controls {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 70px);
-  left: 0;
-  width: 100%;
-  text-align: center;
-  z-index: 1500;
-}
+  /* ===== ボタンパネル ===== */
+  #controls {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 60px);
+    width: 100%;
+    text-align: center;
+    z-index: 1500;
+  }
 
-#canvasWrapper {
-    position: absolute;
-    top: 110px;
-    left: 0;
-    right: 0;
-    bottom: 0;
+  label, button {
+    background: #222;
+    color: #fff;
+    padding: 10px 14px;
+    border: 1px solid #555;
+    border-radius: 8px;
+    margin: 5px;
+    font-size: 14px;
+  }
+
+  input[type=file] { display: none; }
+
+  /* ===== キャンバス表示領域 ===== */
+  #canvasWrapper {
+    position: fixed;
+    inset: 0;          /* ←これで上下左右全部いっぱい */
     background: #000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     z-index: 1;
-}
+  }
 
-canvas {
-  display: block;
-  background: #000;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-label, button {
-  background: #222;
-  color: #fff;
-  padding: 10px 14px;
-  border: 1px solid #555;
-  border-radius: 8px;
-  margin: 5px 6px;
-  font-size: 14px;
-}
-
-input[type=file] {
-  display: none;
-}
+  canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;  /* ←絶対に切れない */
+    display: block;
+  }
 </style>
 </head>
+
 <body>
 
 <div id="appTitle">HoloShare</div>
@@ -100,52 +88,40 @@ input[type=file] {
 
 <script>
 /* ===== 設定 ===== */
+const CANVAS_SIZE = 1080;      // iPhone 14 → 本番では1000に切替
+const CROP_SCALE  = 0.80;      // 正方形の中心トリミング
+const FACE_SCALE  = 0.36;      // 1面サイズ（切れないギリギリ）
 
-// iPhone 14（開発）
-const CANVAS_SIZE_IPHONE14 = 1080;
-// iPhone X（本番）
-const CANVAS_SIZE_IPHONEX = 1000;
-
-// ▼ 使用するキャンバスサイズ（切り替え）
-const CANVAS_SIZE = CANVAS_SIZE_IPHONE14;
-// const CANVAS_SIZE = CANVAS_SIZE_IPHONEX;
-
-// ▼ ピラミッド 13cm 最適化
-const CROP_SCALE = 0.80; 
-const FACE_SCALE = 0.38;  // ←ここを上げると人物が大きくなる（0.38〜0.44）推奨
-
-/* =============================== */
-
+/* ================= */
 const canvas = document.getElementById("holoCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width  = CANVAS_SIZE;
 canvas.height = CANVAS_SIZE;
 
-const video = document.getElementById("srcVideo");
-video.loop = true;  // 🔥 無限ループ追加
-
 const videoInput = document.getElementById("videoInput");
+const video = document.getElementById("srcVideo");
 const playBtn = document.getElementById("playBtn");
 const fsBtn   = document.getElementById("fsBtn");
 
 const controls = document.getElementById("controls");
-const wrapper  = document.getElementById("canvasWrapper");
-const title    = document.getElementById("appTitle");
+const appTitle = document.getElementById("appTitle");
 
 let isLoaded = false;
-let animId = null;
-let isFull = false;
+let isFull   = false;
+let animId   = null;
 
-function waitVideoReady() {
+/* メタデータ待ち */
+function waitVideoReady(){
   return new Promise((resolve)=>{
-    if (video.readyState >= 2) resolve();
-    else video.addEventListener("loadedmetadata", resolve, {once:true});
+    if(video.readyState>=2) resolve();
+    else video.addEventListener("loadedmetadata",resolve,{once:true});
   });
 }
 
-videoInput.addEventListener("change", async (e)=>{
+/* ファイル選択 */
+videoInput.addEventListener("change", async(e)=>{
   const file = e.target.files[0];
-  if (!file) return;
+  if(!file) return;
 
   video.src = URL.createObjectURL(file);
   video.load();
@@ -153,93 +129,84 @@ videoInput.addEventListener("change", async (e)=>{
   await waitVideoReady();
   isLoaded = true;
 
+  video.loop = true;  // ←←★ 自動ループ再生！
+  video.play();
+
   playBtn.disabled = false;
   fsBtn.disabled   = false;
 
-  video.play();
   startLoop();
 });
 
-playBtn.addEventListener("click", ()=>{
-  if (!isLoaded) return;
-
-  if (video.paused) {
+/* 再生停止 */
+playBtn.addEventListener("click",()=>{
+  if(video.paused){
     video.play();
-    playBtn.textContent = "⏸一時停止";
-    startLoop();
+    playBtn.textContent="⏸一時停止";
   } else {
     video.pause();
-    playBtn.textContent = "▶再生";
-    stopLoop();
+    playBtn.textContent="▶再生";
   }
 });
 
-/* 全画面（UI非表示） */
-fsBtn.addEventListener("click", ()=>{
-  if (!isFull) {
-    controls.style.display = "none";
-    title.style.display    = "none";
-    wrapper.style.top      = "0";
-    isFull = true;
-  } else {
-    controls.style.display = "";
-    title.style.display    = "";
-    wrapper.style.top      = "110px";
-    isFull = false;
+/* 全画面 (UIを消すだけ) */
+fsBtn.addEventListener("click",()=>{
+  if(!isFull){
+    controls.style.display="none";
+    appTitle.style.display="none";
+    isFull=true;
+  }else{
+    controls.style.display="";
+    appTitle.style.display="";
+    isFull=false;
   }
 });
 
-/* ==== アニメーションループ ==== */
-function startLoop() {
-  if (animId != null) return;
-  const loop = ()=>{
+/* ループ開始 */
+function startLoop(){
+  if(animId!=null) return;
+  const loop=()=>{
     drawHologram();
-    animId = requestAnimationFrame(loop);
+    animId=requestAnimationFrame(loop);
   };
-  animId = requestAnimationFrame(loop);
+  animId=requestAnimationFrame(loop);
 }
 
-function stopLoop() {
-  cancelAnimationFrame(animId);
-  animId = null;
-}
-
-/* ==== 4面ホログラム描画 ==== */
-function drawHologram() {
-  if (!isLoaded) return;
+/* ===== 4面描画 ===== */
+function drawHologram(){
+  if(!isLoaded) return;
 
   const vw = video.videoWidth;
   const vh = video.videoHeight;
-  if (!vw || !vh) return;
+  if(!vw || !vh) return;
 
-  const shortSide = Math.min(vw, vh);
-  const crop = shortSide * CROP_SCALE;
-  const sx = (vw - crop) / 2;
-  const sy = (vh - crop) / 2;
+  const shortSide = Math.min(vw,vh);
+  const cropSize  = shortSide*CROP_SCALE;
+  const sx=(vw-cropSize)/2;
+  const sy=(vh-cropSize)/2;
 
   const S = CANVAS_SIZE;
+  const face = S*FACE_SCALE;
+  const cx=S/2, cy=S/2;
+
   ctx.setTransform(1,0,0,1,0,0);
-  ctx.fillStyle = "#000";
+  ctx.fillStyle="black";
   ctx.fillRect(0,0,S,S);
 
-  const face = S * FACE_SCALE;
-  const cx = S/2;
-  const cy = S/2;
-
-  function drawFace(rot, tx, ty) {
+  function f(angle,x,y){
     ctx.save();
-    ctx.translate(tx, ty);
-    ctx.rotate(rot);
-    ctx.drawImage(video, sx, sy, crop, crop, -face/2, -face/2, face, face);
+    ctx.translate(x,y);
+    ctx.rotate(angle);
+    ctx.drawImage(video,sx,sy,cropSize,cropSize,-face/2,-face/2,face,face);
     ctx.restore();
   }
 
-  drawFace(0,          cx,           cy + face/2);
-  drawFace(Math.PI,    cx,           cy - face/2);
-  drawFace(-Math.PI/2, cx - face/2,  cy);
-  drawFace(Math.PI/2,  cx + face/2,  cy);
+  f(0,          cx, cy+face/2);
+  f(Math.PI,    cx, cy-face/2);
+  f(-Math.PI/2, cx-face/2, cy);
+  f(Math.PI/2,  cx+face/2, cy);
 }
 </script>
+
 </body>
 </html>
-
