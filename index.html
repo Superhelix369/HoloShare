@@ -96,7 +96,7 @@ canvas {
 <script>
 /* ===== 設定 ===== */
 const CROP_SCALE  = 0.65;      // ← これ以上ズームしない（横幅フル）
-const FACE_SCALE  = 0.32;     // ← 4面がキャンバスから切れない安全サイズ
+const FACE_SCALE  = 0.30;     // ← 4面がキャンバスから切れない安全サイズ
 
 /* ================= */
 const canvas = document.getElementById("holoCanvas");
@@ -197,14 +197,15 @@ function drawHologram(){
 
   const S = canvas.width;
   const face = S * FACE_SCALE;
-  const cx=S/2, cy=S/2;
+  const cx=S/2;
+  const cy=S/2;
 
   ctx.setTransform(1,0,0,1,0,0);
   ctx.fillStyle="black";
   ctx.fillRect(0,0,S,S);
 
   // ★ 中心からどれくらい離すか（0.5〜0.7あたりで調整可）
-  const offset = face * 0.6;
+  const offset = face ;
 
   function f(angle,x,y){
     ctx.save();
