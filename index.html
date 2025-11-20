@@ -95,8 +95,8 @@ canvas {
 
 <script>
 /* ===== 設定 ===== */
-const CROP_SCALE  = 1.0;      // ← これ以上ズームしない（横幅フル）
-const FACE_SCALE  = 0.33;     // ← 4面がキャンバスから切れない安全サイズ
+const CROP_SCALE  = 0.65;      // ← これ以上ズームしない（横幅フル）
+const FACE_SCALE  = 0.32;     // ← 4面がキャンバスから切れない安全サイズ
 
 /* ================= */
 const canvas = document.getElementById("holoCanvas");
@@ -203,6 +203,9 @@ function drawHologram(){
   ctx.fillStyle="black";
   ctx.fillRect(0,0,S,S);
 
+  // ★ 中心からどれくらい離すか（0.5〜0.7あたりで調整可）
+  const offset = face * 0.6;
+
   function f(angle,x,y){
     ctx.save();
     ctx.translate(x,y);
@@ -210,14 +213,12 @@ function drawHologram(){
     ctx.drawImage(video,sx,sy,cropSize,cropSize,-face/2,-face/2,face,face);
     ctx.restore();
   }
-
-  f(0,          cx, cy+face/2);   // 下
-  f(Math.PI,    cx, cy-face/2);   // 上
-  f(-Math.PI/2, cx-face/2, cy);   // 左
-  f(Math.PI/2,  cx+face/2, cy);   // 右
+// 下・上・左・右 の順に配置
+  f(0,          cx,       cy + offset);
+  f(Math.PI,    cx,       cy - offset);
+  f(-Math.PI/2, cx - offset, cy);
+  f(Math.PI/2,  cx + offset, cy);
 }
 </script>
-
-
 </body>
 </html>
